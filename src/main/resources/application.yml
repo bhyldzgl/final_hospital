@@ -1,0 +1,26 @@
+server:
+  port: 9059
+
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/hospitaldb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:CHANGE_ME_TO_A_LONG_RANDOM_SECRET_CHANGE_ME_1234567890_1234567890}
+    expirationMinutes: ${APP_JWT_EXP_MINUTES:120}
+
+seed:
+  admin:
+    username: ${SEED_ADMIN_USERNAME:admin}
+    email: ${SEED_ADMIN_EMAIL:admin@hospital.local}
+    password: ${SEED_ADMIN_PASSWORD:Admin123!}
