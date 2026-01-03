@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:hospital_it;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+app:
+  jwt:
+    secret: "0123456789abcdef0123456789abcdef" # 32+ chars zorunlu
+    expiration-minutes: 60
+
+seed:
+  admin:
+    username: admin
+    email: admin@test.com
+    password: admin12345

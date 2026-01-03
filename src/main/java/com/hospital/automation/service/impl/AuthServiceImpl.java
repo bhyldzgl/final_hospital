@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 @Service
@@ -104,7 +105,10 @@ public class AuthServiceImpl implements AuthService {
         Set<String> normalized = new HashSet<>();
         for (String r : roles) {
             if (r == null) continue;
-            String x = r.trim().toUpperCase();
+
+            // Locale.ROOT: her işletim sisteminde aynı sonucu verir (TR-İ problemi çözülür)
+            String x = r.trim().toUpperCase(Locale.ROOT);
+
             if (x.isBlank()) continue;
 
             if (!x.startsWith("ROLE_")) {
