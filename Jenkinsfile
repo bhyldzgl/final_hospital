@@ -193,7 +193,7 @@ pipeline {
       }
     }
 
-    // Yeni: Selenium testleri için ayrı stage'ler (her biri tek bir Selenium IT sınıfını çalıştırır)
+
     stage('6- Selenium - Appointment') {
       steps {
         script {
