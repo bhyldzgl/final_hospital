@@ -95,6 +95,8 @@ pipeline {
       }
     }
 
+
+
     stage('5- Docker Compose Up') {
       steps {
         script {
