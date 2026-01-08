@@ -194,6 +194,8 @@ pipeline {
     }
 
 
+
+
     stage('6- Selenium - Appointment') {
       steps {
         script {
