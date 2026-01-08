@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title th:text="${isEdit} ? 'Edit Doctor' : 'New Doctor'">Doctor Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/ui}">Hospital UI</a>
+        <div class="navbar-nav">
+            <a class="nav-link" th:href="@{/ui/patients}">Patients</a>
+            <a class="nav-link active" th:href="@{/ui/doctors}">Doctors</a>
+            <a class="nav-link" th:href="@{/ui/appointments}">Appointments</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0" th:text="${isEdit} ? 'Edit Doctor' : 'New Doctor'">New Doctor</h3>
+        <a class="btn btn-outline-secondary" th:href="@{/ui/doctors}">Back</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <!-- ================= CREATE FORM ================= -->
+            <form th:if="${!isEdit}"
+                  th:object="${doctorForm}"
+                  th:action="@{/ui/doctors}"
+                  method="post">
+
+                <input th:if="${_csrf != null}" type="hidden"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">First Name</label>
+                        <input class="form-control" th:field="*{firstName}" required/>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Last Name</label>
+                        <input class="form-control" th:field="*{lastName}" required/>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Specialization</label>
+                    <input class="form-control" th:field="*{specialization}"/>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Department</label>
+                    <select class="form-select" th:field="*{departmentId}">
+                        <option value="">-</option>
+                        <option th:each="d : ${departments}"
+                                th:value="${d.id}"
+                                th:text="${d.name}">
+                        </option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" type="submit">Create</button>
+            </form>
+
+
+            <!-- ================= UPDATE FORM ================= -->
+            <form th:if="${isEdit}"
+                  th:object="${doctorForm}"
+                  th:action="@{/ui/doctors/{id}(id=${doctorForm.id})}"
+                  method="post">
+
+                <input th:if="${_csrf != null}" type="hidden"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">First Name</label>
+                        <input class="form-control" th:field="*{firstName}" required/>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Last Name</label>
+                        <input class="form-control" th:field="*{lastName}" required/>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Specialization</label>
+                    <input class="form-control" th:field="*{specialization}"/>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Department</label>
+                    <select class="form-select" th:field="*{departmentId}">
+                        <option value="">-</option>
+                        <option th:each="d : ${departments}"
+                                th:value="${d.id}"
+                                th:text="${d.name}">
+                        </option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" type="submit">Update</button>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

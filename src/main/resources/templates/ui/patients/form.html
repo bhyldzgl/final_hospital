@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{ui/layout :: layout(${isEdit} ? 'Edit Patient' : 'Create Patient', ~{::#pageContent})}">
+
+<div id="pageContent">
+    <section>
+        <div class="card shadow-sm">
+            <div class="card-body">
+
+                <!-- CREATE -->
+                <form th:if="${!isEdit}" th:action="@{/ui/patients}" method="post" th:object="${form}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name</label>
+                            <input class="form-control" th:field="*{firstName}" required data-testid="pat-firstName">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name</label>
+                            <input class="form-control" th:field="*{lastName}" required data-testid="pat-lastName">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">National ID</label>
+                            <input class="form-control" th:field="*{nationalId}" data-testid="pat-nationalId">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Birth Date</label>
+                            <input class="form-control" type="date" th:field="*{birthDate}" data-testid="pat-birthDate">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input class="form-control" th:field="*{phone}" data-testid="pat-phone">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Address</label>
+                            <input class="form-control" th:field="*{address}" data-testid="pat-address">
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-primary" type="submit" data-testid="pat-create">Create</button>
+                        <a class="btn btn-link" th:href="@{/ui/patients}">Back</a>
+                    </div>
+                </form>
+
+                <!-- UPDATE -->
+                <form th:if="${isEdit}" th:action="@{/ui/patients/{id}(id=${form.id})}" method="post" th:object="${form}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name</label>
+                            <input class="form-control" th:field="*{firstName}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name</label>
+                            <input class="form-control" th:field="*{lastName}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">National ID</label>
+                            <input class="form-control" th:field="*{nationalId}">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Birth Date</label>
+                            <input class="form-control" type="date" th:field="*{birthDate}">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input class="form-control" th:field="*{phone}">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Address</label>
+                            <input class="form-control" th:field="*{address}">
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-primary" type="submit">Update</button>
+                        <a class="btn btn-link" th:href="@{/ui/patients}">Back</a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </section>
+</div>
+
+</html>

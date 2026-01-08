@@ -1,22 +1,30 @@
-# ---- build stage ----
-FROM eclipse-temurin:21-jdk AS build
+# Build Stage (Maven)
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /app
 
-COPY .mvn/ .mvn
-COPY mvnw pom.xml ./
-RUN chmod +x mvnw
-RUN ./mvnw -q -DskipTests dependency:go-offline
+# (Opsiyonel ama hızlı build için iyi) önce pom + wrapper kopyala
+COPY pom.xml ./
+COPY mvnw ./
+COPY .mvn .mvn
 
-COPY src ./src
-RUN ./mvnw -q -DskipTests clean package
+# Bağımlılıkları cache'lemek için (ilk build'i hızlandırır)
+RUN chmod +x mvnw && ./mvnw -q -DskipTests dependency:go-offline
 
-# ---- run stage ----
-FROM eclipse-temurin:21-jre
+# Proje dosyalarını kopyala
+COPY . .
+
+# Maven build (testleri atla)
+RUN ./mvnw -DskipTests clean package
+
+# Run Stage
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-COPY --from=build /app/target/*SNAPSHOT.jar /app/app.jar
+# Spring Boot jar genelde target/ altında olur
+COPY --from=build /app/target/*.jar app.jar
 
-EXPOSE 8080
-ENV JAVA_OPTS=""
+# Create uploads directory
+RUN mkdir -p /app/uploads
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+EXPOSE 9060
+ENTRYPOINT ["java", "-jar", "app.jar"]

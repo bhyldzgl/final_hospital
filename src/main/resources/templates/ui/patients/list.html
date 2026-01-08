@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{ui/layout :: layout('Patients', ~{::#pageContent})}">
+
+<div id="pageContent">
+
+    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+    <div class="d-flex justify-content-end mb-3">
+        <a class="btn btn-primary"
+           th:href="@{/ui/patients/new}"
+           data-testid="patient-new">New Patient</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0 align-middle">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>National ID</th>
+                    <th>Birth Date</th>
+                    <th>Phone</th>
+                    <th style="width: 180px;">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="p : ${patients}">
+                    <td th:text="${p.id}"></td>
+                    <td th:text="${p.firstName + ' ' + p.lastName}"></td>
+                    <td th:text="${p.nationalId}"></td>
+                    <td th:text="${p.birthDate}"></td>
+                    <td th:text="${p.phone}"></td>
+
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-warning"
+                               th:href="@{/ui/patients/{id}/edit(id=${p.id})}">
+                                Edit
+                            </a>
+
+                            <form th:action="@{/ui/patients/{id}/delete(id=${p.id})}"
+                                  method="post"
+                                  onsubmit="return confirm('Delete this patient?');">
+
+                                <input th:if="${_csrf != null}" type="hidden"
+                                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</html>

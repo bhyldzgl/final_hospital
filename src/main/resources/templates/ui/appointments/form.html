@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{ui/layout :: layout(${isEdit} ? 'Edit Appointment' : 'Create Appointment', ~{::#pageContent})}">
+
+<div id="pageContent">
+    <section>
+        <div class="card shadow-sm">
+            <div class="card-body">
+
+                <!-- CREATE -->
+                <form th:if="${!isEdit}" th:action="@{/ui/appointments}" method="post" th:object="${appointmentForm}">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Patient</label>
+                            <select class="form-select" th:field="*{patientId}" required>
+                                <option value="">Select...</option>
+                                <option th:each="p : ${patients}"
+                                        th:value="${p.id}"
+                                        th:text="${p.firstName + ' ' + p.lastName}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Doctor</label>
+                            <select class="form-select" th:field="*{doctorId}" required>
+                                <option value="">Select...</option>
+                                <option th:each="d : ${doctors}"
+                                        th:value="${d.id}"
+                                        th:text="${d.firstName + ' ' + d.lastName}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Department</label>
+                            <select class="form-select" th:field="*{departmentId}">
+                                <option value="">Select...</option>
+                                <option th:each="dep : ${departments}"
+                                        th:value="${dep.id}"
+                                        th:text="${dep.name}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Start Time</label>
+                            <input class="form-control" type="datetime-local" th:field="*{startTime}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">End Time</label>
+                            <input class="form-control" type="datetime-local" th:field="*{endTime}">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" th:field="*{status}">
+                                <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}"></option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Note</label>
+                            <input class="form-control" th:field="*{note}" placeholder="Optional note">
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-primary" type="submit">Create</button>
+                        <a class="btn btn-link" th:href="@{/ui/appointments}">Back</a>
+                    </div>
+                </form>
+
+                <!-- UPDATE -->
+                <form th:if="${isEdit}" th:action="@{/ui/appointments/{id}(id=${appointmentForm.id})}" method="post" th:object="${appointmentForm}">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Patient</label>
+                            <select class="form-select" th:field="*{patientId}" required>
+                                <option value="">Select...</option>
+                                <option th:each="p : ${patients}"
+                                        th:value="${p.id}"
+                                        th:text="${p.firstName + ' ' + p.lastName}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Doctor</label>
+                            <select class="form-select" th:field="*{doctorId}" required>
+                                <option value="">Select...</option>
+                                <option th:each="d : ${doctors}"
+                                        th:value="${d.id}"
+                                        th:text="${d.firstName + ' ' + d.lastName}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Department</label>
+                            <select class="form-select" th:field="*{departmentId}">
+                                <option value="">Select...</option>
+                                <option th:each="dep : ${departments}"
+                                        th:value="${dep.id}"
+                                        th:text="${dep.name}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Start Time</label>
+                            <input class="form-control" type="datetime-local" th:field="*{startTime}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">End Time</label>
+                            <input class="form-control" type="datetime-local" th:field="*{endTime}">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" th:field="*{status}">
+                                <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}"></option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Note</label>
+                            <input class="form-control" th:field="*{note}" placeholder="Optional note">
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-primary" type="submit">Update</button>
+                        <a class="btn btn-link" th:href="@{/ui/appointments}">Back</a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </section>
+</div>
+
+</html>

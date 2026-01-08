@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{ui/layout :: layout('Dashboard', ~{::#pageContent})}">
+
+<div id="pageContent">
+    <div class="row g-3">
+        <div class="col-md-6 col-lg-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="fw-semibold">Patients</div>
+                    <div class="text-muted small">List & create patients</div>
+                    <a class="btn btn-sm btn-primary mt-2" th:href="@{/ui/patients}">Open</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="fw-semibold">Departments</div>
+                    <div class="text-muted small">Manage departments</div>
+                    <a class="btn btn-sm btn-primary mt-2" th:href="@{/ui/departments}">Open</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="fw-semibold">Doctors</div>
+                    <div class="text-muted small">List & create doctors</div>
+                    <a class="btn btn-sm btn-primary mt-2" th:href="@{/ui/doctors}">Open</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="fw-semibold">Appointments</div>
+                    <div class="text-muted small">Create appointments</div>
+                    <a class="btn btn-sm btn-primary mt-2" th:href="@{/ui/appointments}">Open</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</html>

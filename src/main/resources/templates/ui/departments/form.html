@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{ui/layout :: layout(${isEdit} ? 'Edit Department' : 'Create Department', ~{::#pageContent})}">
+
+<div id="pageContent">
+    <section>
+        <div class="card shadow-sm">
+            <div class="card-body">
+
+                <!-- CREATE -->
+                <form th:if="${!isEdit}" th:action="@{/ui/departments}" method="post" th:object="${department}">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input class="form-control"
+                               th:field="*{name}"
+                               placeholder="Cardiology"
+                               required
+                               data-testid="dept-name">
+                    </div>
+
+                    <button class="btn btn-primary" type="submit" data-testid="dept-create">Create</button>
+                    <a class="btn btn-link" th:href="@{/ui/departments}">Back</a>
+                </form>
+
+                <!-- UPDATE -->
+                <form th:if="${isEdit}" th:action="@{/ui/departments/{id}(id=${department.id})}" method="post" th:object="${department}">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input class="form-control"
+                               th:field="*{name}"
+                               required>
+                    </div>
+
+                    <button class="btn btn-primary" type="submit">Update</button>
+                    <a class="btn btn-link" th:href="@{/ui/departments}">Back</a>
+                </form>
+
+            </div>
+        </div>
+    </section>
+</div>
+
+</html>

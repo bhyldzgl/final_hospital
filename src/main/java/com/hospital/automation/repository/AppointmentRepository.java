@@ -10,6 +10,11 @@ import java.time.LocalDateTime;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
+    // ✅ FK kontrolü için (silme öncesi)
+    boolean existsByDoctor_Id(Long doctorId);
+    boolean existsByPatient_Id(Long patientId);
+    boolean existsByDepartment_Id(Long departmentId);
+
     // Çakışma: mevcut.start < yeniEnd AND mevcut.end > yeniStart
     @Query("""
            SELECT COUNT(a) > 0

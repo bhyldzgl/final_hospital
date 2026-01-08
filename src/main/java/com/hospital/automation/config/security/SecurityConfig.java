@@ -28,21 +28,30 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/h2-console/**") // dev
+                        .ignoringRequestMatchers("/h2-console/**")
                         .disable()
                 )
                 .headers(headers -> headers
-                        .frameOptions(frame -> frame.sameOrigin()) // H2 console için
+                        .frameOptions(frame -> frame.sameOrigin())
                 )
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+
                         // Public
-                        .requestMatchers("/health").permitAll()
+                        .requestMatchers("/health", "/error").permitAll()
+
+                        // ✅ UI + static kaynaklar (BURASI DÜZELTİLDİ)
+                        .requestMatchers(
+                                "/ui/**",
+                                "/webjars/**",
+                                "/css/**", "/js/**", "/images/**",
+                                "/error"
+                        ).permitAll()
+
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
 
-                        // Diğer her şey auth ister (role kontrolü method-level @PreAuthorize ile)
                         .anyRequest().authenticated()
                 );
 

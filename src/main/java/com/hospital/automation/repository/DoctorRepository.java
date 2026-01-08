@@ -4,4 +4,5 @@ import com.hospital.automation.domain.entity.Doctor;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DoctorRepository extends JpaRepository<Doctor, Long> {
+    boolean existsByDepartment_Id(Long departmentId);
 }

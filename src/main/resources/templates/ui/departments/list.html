@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{ui/layout :: layout('Departments', ~{::#pageContent})}">
+
+<div id="pageContent">
+
+    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+    <div class="d-flex justify-content-end mb-3">
+        <a class="btn btn-primary"
+           th:href="@{/ui/departments/new}"
+           data-testid="dept-new">New Department</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0 align-middle">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th style="width: 180px;">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="d : ${departments}">
+                    <td th:text="${d.id}"></td>
+                    <td th:text="${d.name}"></td>
+
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-warning"
+                               th:href="@{/ui/departments/{id}/edit(id=${d.id})}">
+                                Edit
+                            </a>
+
+                            <form th:action="@{/ui/departments/{id}/delete(id=${d.id})}"
+                                  method="post"
+                                  onsubmit="return confirm('Delete this department?');">
+
+                                <input th:if="${_csrf != null}" type="hidden"
+                                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</html>
