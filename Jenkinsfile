@@ -105,7 +105,7 @@ pipeline {
 
               echo "Waiting for backend..."
               for i in {1..60}; do
-                if curl -sf --connect-timeout 5 http://localhost:9060; then
+                if curl -sf --connect-timeout 5 http://localhost:9060/ui; then
                   echo "Backend is ready!"
                   exit 0
                 fi
@@ -130,7 +130,7 @@ pipeline {
                 $ok = $false
                 for ($i=1; $i -le 60; $i++) {
                   try {
-                    $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://localhost:9060
+                    $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://localhost:9060/ui
                     if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { $ok = $true; break }
                   } catch {}
                   Start-Sleep -Seconds 5
