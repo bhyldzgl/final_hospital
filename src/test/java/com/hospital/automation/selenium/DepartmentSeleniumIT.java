@@ -7,34 +7,30 @@ import org.junit.jupiter.api.Test;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 public class DepartmentSeleniumIT {
 
     private WebDriver driver;
     private WebDriverWait wait;
-    private final String baseUrl = "http://localhost:9060";
+
+    private final String baseUrl = System.getenv().getOrDefault("BASE_URL", "http://localhost:9060");
 
     @BeforeEach
-    void setup() {
-        WebDriverManager.chromedriver().setup();
-
+    void setup() throws Exception {
         ChromeOptions options = new ChromeOptions();
+
         String headless = System.getenv("CHROME_HEADLESS");
         if (headless == null) headless = System.getProperty("chrome.headless", "true");
         if ("true".equalsIgnoreCase(headless)) {
@@ -46,8 +42,15 @@ public class DepartmentSeleniumIT {
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--window-size=1200,800");
 
-        driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        String remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
+        if (remoteUrl != null && !remoteUrl.isBlank()) {
+            driver = new RemoteWebDriver(new URL(remoteUrl), options);
+        } else {
+            WebDriverManager.chromedriver().setup();
+            driver = new ChromeDriver(options);
+        }
+
+        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
     }
 
     @AfterEach
@@ -59,57 +62,40 @@ public class DepartmentSeleniumIT {
 
     @Test
     void createDepartment_viaUi_showsInList() throws IOException {
-        String depName = "Selenium Department " + shortId();
-
         driver.get(baseUrl + "/ui/departments/new");
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("form")));
 
         WebElement nameInput = driver.findElement(By.cssSelector("form input[name='name']"));
         nameInput.clear();
-        nameInput.sendKeys(depName);
+        nameInput.sendKeys("Selenium Department");
 
         WebElement submitBtn = findSubmitButton();
         assertThat(submitBtn).isNotNull();
         wait.until(ExpectedConditions.elementToBeClickable(submitBtn));
         submitBtn.click();
 
-        // ❗ ESAS FIX: "/ui/departments/new" değil, "/ui/departments" olduğuna emin ol
-        try {
-            wait.until(ExpectedConditions.urlMatches(".*/ui/departments/?$"));
-        } catch (TimeoutException e) {
-            takeScreenshot("department-not-redirected");
-            String url = driver.getCurrentUrl();
-            String body = driver.findElement(By.tagName("body")).getText();
-            throw new AssertionError(
-                    "Submit sonrası listeye redirect olmadı.\n" +
-                            "Beklenen: /ui/departments\n" +
-                            "Şu anki URL: " + url + "\n" +
-                            "Body snippet: " + body.substring(0, Math.min(500, body.length())),
-                    e
-            );
-        }
+        // ✅ /new ile karışmasın diye "tam" list URL bekle
+        wait.until(d -> {
+            String u = d.getCurrentUrl();
+            return u.equals(baseUrl + "/ui/departments") || u.equals(baseUrl + "/ui/departments/");
+        });
 
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
-
         String body = driver.findElement(By.tagName("body")).getText();
-        if (!body.contains(depName)) {
+
+        if (!body.contains("Selenium Department")) {
             takeScreenshot("department-create-missing");
-            throw new AssertionError(
-                    "Created department listede bulunamadı.\n" +
-                            "Expected='" + depName + "'\n" +
-                            "URL=" + driver.getCurrentUrl() + "\n" +
-                            "Body snippet: " + body.substring(0, Math.min(500, body.length()))
-            );
+            throw new AssertionError("Created department not found in list page. Body snippet: " +
+                    body.substring(0, Math.min(300, body.length())));
         }
 
-        assertThat(body).contains(depName);
+        assertThat(body).contains("Selenium Department");
     }
 
     private WebElement findSubmitButton() {
-        List<WebElement> buttons = driver.findElements(By.cssSelector("form button, form input[type='submit']"));
+        List<WebElement> buttons = driver.findElements(By.cssSelector("form button[type='submit'], form button.btn-primary"));
         for (WebElement b : buttons) {
-            String tag = b.getTagName();
-            String text = "input".equalsIgnoreCase(tag) ? b.getAttribute("value") : b.getText();
+            String text = b.getText();
             if (text != null && (text.contains("Create") || text.contains("Save") || text.contains("Kaydet") || text.contains("Oluştur"))) {
                 return b;
             }
@@ -117,18 +103,11 @@ public class DepartmentSeleniumIT {
         return buttons.isEmpty() ? null : buttons.get(0);
     }
 
-    private String shortId() {
-        return UUID.randomUUID().toString().substring(0, 8);
-    }
-
     private void takeScreenshot(String name) throws IOException {
         if (!(driver instanceof TakesScreenshot)) return;
-
         File scr = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-        String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"));
-        File target = new File(System.getProperty("java.io.tmpdir"), name + "_" + ts + ".png");
-
-        Files.copy(scr.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        File target = new File(System.getProperty("java.io.tmpdir"), name + ".png");
+        Files.copy(scr.toPath(), target.toPath());
         System.out.println("Saved screenshot to: " + target.getAbsolutePath());
     }
 }

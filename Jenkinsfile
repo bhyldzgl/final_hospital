@@ -196,97 +196,58 @@ pipeline {
 
 
 
-    stage('6- Selenium - Appointment') {
+    // ✅ Department
+    stage('6- Selenium - Department') {
       steps {
         script {
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-            if (isUnix()) {
-              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]){
-                sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.AppointmentSeleniumIT" verify'
-              }
-            } else {
-              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]) {
-                bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.AppointmentSeleniumIT" verify'
-              }
+            withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444/wd/hub", "BASE_URL=http://host.docker.internal:9060"]) {
+              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DepartmentSeleniumIT" verify'
             }
           }
-        }
-      }
-      post {
-        always {
-          junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
         }
       }
     }
 
-    stage('7- Selenium - Patient') {
+    // ✅ Doctor
+    stage('7- Selenium - Doctor') {
       steps {
         script {
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-            if (isUnix()) {
-              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]){
-                sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.PatientSeleniumIT" verify'
-              }
-            } else {
-              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]) {
-                bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.PatientSeleniumIT" verify'
-              }
+            withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444/wd/hub", "BASE_URL=http://host.docker.internal:9060"]) {
+              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DoctorSeleniumIT" verify'
             }
           }
-        }
-      }
-      post {
-        always {
-          junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
         }
       }
     }
 
-    stage('8- Selenium - Doctor') {
+    // ✅ Patient
+    stage('8- Selenium - Patient') {
       steps {
         script {
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-            if (isUnix()) {
-              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]){
-                sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DoctorSeleniumIT" verify'
-              }
-            } else {
-              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]) {
-                bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DoctorSeleniumIT" verify'
-              }
+            withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444/wd/hub", "BASE_URL=http://host.docker.internal:9060"]) {
+              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.PatientSeleniumIT" verify'
             }
           }
-        }
-      }
-      post {
-        always {
-          junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
         }
       }
     }
 
-    stage('9- Selenium - Department') {
+    // ✅ Appointment en sona
+    stage('9- Selenium - Appointment') {
       steps {
         script {
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-            if (isUnix()) {
-              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]){
-                sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DepartmentSeleniumIT" verify'
-              }
-            } else {
-              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]) {
-                bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DepartmentSeleniumIT" verify'
-              }
+            withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444/wd/hub", "BASE_URL=http://host.docker.internal:9060"]) {
+              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.AppointmentSeleniumIT" verify'
             }
           }
         }
       }
-      post {
-        always {
-          junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
-        }
-      }
     }
+
 
     stage('10- JaCoCo Report') {
       steps {

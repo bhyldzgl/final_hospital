@@ -7,14 +7,12 @@ import org.junit.jupiter.api.Test;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.ExpectedCondition;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.Select;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.support.ui.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
@@ -24,21 +22,17 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 public class AppointmentSeleniumIT {
 
     private WebDriver driver;
     private WebDriverWait wait;
 
-    // Default URL used by Jenkins/docker-compose in this project
-    private final String baseUrl = "http://localhost:9060";
+    private final String baseUrl = System.getenv().getOrDefault("BASE_URL", "http://localhost:9060");
 
     @BeforeEach
-    void setup() {
-        WebDriverManager.chromedriver().setup();
+    void setup() throws Exception {
         ChromeOptions options = new ChromeOptions();
 
-        // Allow toggling headless via env var CHROME_HEADLESS (true/false)
         String headless = System.getenv("CHROME_HEADLESS");
         if (headless == null) headless = System.getProperty("chrome.headless", "true");
         if ("true".equalsIgnoreCase(headless)) {
@@ -46,61 +40,57 @@ public class AppointmentSeleniumIT {
             options.addArguments("--disable-gpu");
         }
 
-        // Recommended flags for CI
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--window-size=1200,800");
 
-        driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        String remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
+        if (remoteUrl != null && !remoteUrl.isBlank()) {
+            driver = new RemoteWebDriver(new URL(remoteUrl), options);
+        } else {
+            WebDriverManager.chromedriver().setup();
+            driver = new ChromeDriver(options);
+        }
+
+        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
     }
 
     @AfterEach
     void teardown() {
         if (driver != null) {
-            try {
-                driver.quit();
-            } catch (Exception ignored) {
-            }
+            try { driver.quit(); } catch (Exception ignored) {}
         }
     }
 
     @Test
     void createAppointment_viaUi_showsInList() throws IOException {
-        // Navigate to new appointment form
         driver.get(baseUrl + "/ui/appointments/new");
-
-        // Wait for form to be present
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("form")));
 
-        // Wait for selects to have REAL options (value != empty)
         By patientSelBy = By.cssSelector("form select[name='patientId']");
         By doctorSelBy = By.cssSelector("form select[name='doctorId']");
+
         waitUntilSelectHasRealOptions(patientSelBy);
         waitUntilSelectHasRealOptions(doctorSelBy);
 
-        // Select first real patient
         Select patientSelect = new Select(driver.findElement(patientSelBy));
         boolean patientChosen = chooseFirstRealOptionByValue(patientSelect);
         assertThat(patientChosen).isTrue();
 
-        // Select first real doctor
         Select doctorSelect = new Select(driver.findElement(doctorSelBy));
         boolean doctorChosen = chooseFirstRealOptionByValue(doctorSelect);
         assertThat(doctorChosen).isTrue();
 
-        // Capture selected texts for robust assertion later
         String selectedPatientText = safeText(patientSelect.getFirstSelectedOption());
         String selectedDoctorText = safeText(doctorSelect.getFirstSelectedOption());
 
-        // Department is optional - if present choose first real option
+        // Department optional
         List<WebElement> deptSelectElems = driver.findElements(By.cssSelector("form select[name='departmentId']"));
         if (!deptSelectElems.isEmpty()) {
             Select deptSelect = new Select(deptSelectElems.get(0));
             chooseFirstRealOptionByValue(deptSelect);
         }
 
-        // Fill start/end times (datetime-local expects yyyy-MM-dd'T'HH:mm)
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
         LocalDateTime start = LocalDateTime.now().plusHours(2).withSecond(0).withNano(0);
         LocalDateTime end = start.plusHours(1);
@@ -108,26 +98,26 @@ public class AppointmentSeleniumIT {
         setDateTimeLocal("startTime", start.format(fmt));
         setDateTimeLocal("endTime", end.format(fmt));
 
-        // Optional note
         List<WebElement> noteInputs = driver.findElements(By.cssSelector("form input[name='note']"));
         if (!noteInputs.isEmpty()) {
             noteInputs.get(0).clear();
             noteInputs.get(0).sendKeys("Selenium test note");
         }
 
-        // Submit the form
         WebElement submitBtn = findSubmitButton();
         assertThat(submitBtn).isNotNull();
         wait.until(ExpectedConditions.elementToBeClickable(submitBtn));
         submitBtn.click();
 
-        // After submit we should be redirected to /ui/appointments
-        wait.until(ExpectedConditions.urlContains("/ui/appointments"));
+        // List sayfası bekle
+        wait.until(d -> {
+            String u = d.getCurrentUrl();
+            return u.equals(baseUrl + "/ui/appointments") || u.equals(baseUrl + "/ui/appointments/");
+        });
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
 
         String bodyText = driver.findElement(By.tagName("body")).getText();
 
-        // Robust checks: patient & doctor names should appear somewhere on list page
         boolean ok =
                 (selectedPatientText != null && !selectedPatientText.isBlank() && bodyText.contains(selectedPatientText))
                         || (selectedDoctorText != null && !selectedDoctorText.isBlank() && bodyText.contains(selectedDoctorText))
@@ -142,7 +132,6 @@ public class AppointmentSeleniumIT {
             );
         }
 
-        // If one of them is present, test passes
         assertThat(ok).isTrue();
     }
 
@@ -153,7 +142,7 @@ public class AppointmentSeleniumIT {
                 List<WebElement> opts = selectEl.findElements(By.tagName("option"));
                 for (WebElement o : opts) {
                     String v = o.getAttribute("value");
-                    if (v != null && !v.isBlank()) return true; // ONLY real options
+                    if (v != null && !v.isBlank()) return true;
                 }
                 return false;
             } catch (NoSuchElementException ex) {
@@ -192,7 +181,8 @@ public class AppointmentSeleniumIT {
         List<WebElement> buttons = driver.findElements(By.cssSelector("form button[type='submit'], form button.btn-primary"));
         for (WebElement b : buttons) {
             String text = b.getText();
-            if (text != null && (text.contains("Create") || text.contains("Update") || text.contains("Save") || text.contains("Kaydet") || text.contains("Oluştur"))) {
+            if (text != null && (text.contains("Create") || text.contains("Update") || text.contains("Save")
+                    || text.contains("Kaydet") || text.contains("Oluştur"))) {
                 return b;
             }
         }
@@ -200,19 +190,14 @@ public class AppointmentSeleniumIT {
     }
 
     private String safeText(WebElement el) {
-        try {
-            return el == null ? null : el.getText();
-        } catch (Exception e) {
-            return null;
-        }
+        try { return el == null ? null : el.getText(); }
+        catch (Exception e) { return null; }
     }
 
     private void takeScreenshot(String name) throws IOException {
         if (!(driver instanceof TakesScreenshot)) return;
 
         File scr = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-
-        // Unique filename + overwrite safety
         String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"));
         File target = new File(System.getProperty("java.io.tmpdir"), name + "_" + ts + ".png");
 
