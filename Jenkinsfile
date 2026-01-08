@@ -130,7 +130,7 @@ pipeline {
                 $ok = $false
                 for ($i=1; $i -le 60; $i++) {
                   try {
-                    $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://localhost:8081/login
+                    $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://localhost:9060
                     if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { $ok = $true; break }
                   } catch {}
                   Start-Sleep -Seconds 5
