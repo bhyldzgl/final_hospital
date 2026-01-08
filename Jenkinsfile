@@ -145,7 +145,84 @@ pipeline {
       }
     }
 
-    stage('6- JaCoCo Report') {
+    // Yeni: Selenium testleri için ayrı stage'ler (her biri tek bir Selenium IT sınıfını çalıştırır)
+    stage('6- Selenium - Appointment') {
+      steps {
+        script {
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+            if (isUnix()) {
+              sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.AppointmentSeleniumIT" verify'
+            } else {
+              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.AppointmentSeleniumIT" verify'
+            }
+          }
+        }
+      }
+      post {
+        always {
+          junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
+        }
+      }
+    }
+
+    stage('7- Selenium - Patient') {
+      steps {
+        script {
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+            if (isUnix()) {
+              sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.PatientSeleniumIT" verify'
+            } else {
+              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.PatientSeleniumIT" verify'
+            }
+          }
+        }
+      }
+      post {
+        always {
+          junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
+        }
+      }
+    }
+
+    stage('8- Selenium - Doctor') {
+      steps {
+        script {
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+            if (isUnix()) {
+              sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DoctorSeleniumIT" verify'
+            } else {
+              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DoctorSeleniumIT" verify'
+            }
+          }
+        }
+      }
+      post {
+        always {
+          junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
+        }
+      }
+    }
+
+    stage('9- Selenium - Department') {
+      steps {
+        script {
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+            if (isUnix()) {
+              sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DepartmentSeleniumIT" verify'
+            } else {
+              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DepartmentSeleniumIT" verify'
+            }
+          }
+        }
+      }
+      post {
+        always {
+          junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
+        }
+      }
+    }
+
+    stage('10- JaCoCo Report') {
       steps {
         script {
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
