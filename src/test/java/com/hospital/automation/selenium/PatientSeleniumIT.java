@@ -31,7 +31,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 public class PatientSeleniumIT {
-
     private WebDriver driver;
     private WebDriverWait wait;
     private final String baseUrl = "http://localhost:9060";

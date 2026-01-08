@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -72,104 +73,87 @@ public class AppointmentSeleniumIT {
         // Wait for form to be present
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("form")));
 
-        // Wait for selects to be populated (patients/doctors loaded by controller)
-        waitUntilSelectHasOptions(By.cssSelector("form select[name='patientId']"));
-        waitUntilSelectHasOptions(By.cssSelector("form select[name='doctorId']"));
+        // Wait for selects to have REAL options (value != empty)
+        By patientSelBy = By.cssSelector("form select[name='patientId']");
+        By doctorSelBy = By.cssSelector("form select[name='doctorId']");
+        waitUntilSelectHasRealOptions(patientSelBy);
+        waitUntilSelectHasRealOptions(doctorSelBy);
 
-        // Select first non-empty patient (use rendered name attribute)
-        Select patientSelect = new Select(driver.findElement(By.cssSelector("form select[name='patientId']")));
-        boolean patientChosen = chooseFirstNonEmptyOption(patientSelect);
+        // Select first real patient
+        Select patientSelect = new Select(driver.findElement(patientSelBy));
+        boolean patientChosen = chooseFirstRealOptionByValue(patientSelect);
         assertThat(patientChosen).isTrue();
 
-        // Select first non-empty doctor
-        Select doctorSelect = new Select(driver.findElement(By.cssSelector("form select[name='doctorId']")));
-        boolean doctorChosen = chooseFirstNonEmptyOption(doctorSelect);
+        // Select first real doctor
+        Select doctorSelect = new Select(driver.findElement(doctorSelBy));
+        boolean doctorChosen = chooseFirstRealOptionByValue(doctorSelect);
         assertThat(doctorChosen).isTrue();
 
-        // Department is optional - try select first option if present
+        // Capture selected texts for robust assertion later
+        String selectedPatientText = safeText(patientSelect.getFirstSelectedOption());
+        String selectedDoctorText = safeText(doctorSelect.getFirstSelectedOption());
+
+        // Department is optional - if present choose first real option
         List<WebElement> deptSelectElems = driver.findElements(By.cssSelector("form select[name='departmentId']"));
         if (!deptSelectElems.isEmpty()) {
             Select deptSelect = new Select(deptSelectElems.get(0));
-            chooseFirstNonEmptyOption(deptSelect);
+            chooseFirstRealOptionByValue(deptSelect);
         }
 
         // Fill start/end times (datetime-local expects yyyy-MM-dd'T'HH:mm)
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
         LocalDateTime start = LocalDateTime.now().plusHours(2).withSecond(0).withNano(0);
         LocalDateTime end = start.plusHours(1);
-        String startStr = start.format(fmt);
-        String endStr = end.format(fmt);
 
-        WebElement startInput = driver.findElement(By.cssSelector("form input[type='datetime-local'][name='startTime']"));
-        startInput.clear();
-        // Use JS to set value to avoid sendKeys issues on datetime-local
-        if (driver instanceof JavascriptExecutor) {
-            ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", startInput, startStr);
-        } else {
-            startInput.sendKeys(startStr);
-        }
-
-        WebElement endInput = driver.findElement(By.cssSelector("form input[type='datetime-local'][name='endTime']"));
-        endInput.clear();
-        if (driver instanceof JavascriptExecutor) {
-            ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", endInput, endStr);
-        } else {
-            endInput.sendKeys(endStr);
-        }
+        setDateTimeLocal("startTime", start.format(fmt));
+        setDateTimeLocal("endTime", end.format(fmt));
 
         // Optional note
         List<WebElement> noteInputs = driver.findElements(By.cssSelector("form input[name='note']"));
         if (!noteInputs.isEmpty()) {
+            noteInputs.get(0).clear();
             noteInputs.get(0).sendKeys("Selenium test note");
         }
 
-        // Submit the form - find submit button by text 'Create' or button[type=submit]
-        WebElement submitBtn = null;
-        List<WebElement> buttons = driver.findElements(By.cssSelector("form button[type='submit'], form button.btn-primary"));
-        for (WebElement b : buttons) {
-            String text = b.getText();
-            if (text != null && (text.contains("Create") || text.contains("Update") || text.contains("Kaydet"))) {
-                submitBtn = b;
-                break;
-            }
-        }
-        if (submitBtn == null && !buttons.isEmpty()) submitBtn = buttons.get(0);
+        // Submit the form
+        WebElement submitBtn = findSubmitButton();
         assertThat(submitBtn).isNotNull();
-
-        // Wait until clickable and click
         wait.until(ExpectedConditions.elementToBeClickable(submitBtn));
         submitBtn.click();
 
         // After submit we should be redirected to /ui/appointments
         wait.until(ExpectedConditions.urlContains("/ui/appointments"));
-
-        // Wait for the list table or appointments content
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
 
-        // Basic assertion: page contains our note text or a row with the doctor's/patient's name
         String bodyText = driver.findElement(By.tagName("body")).getText();
 
-        // If note was set, assert it appears; otherwise assert presence of start time
-        if (bodyText.contains("Selenium test note")) {
-            assertThat(bodyText).contains("Selenium test note");
-        } else if (bodyText.contains(start.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))) {
-            assertThat(bodyText).contains(start.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        } else {
-            // Take screenshot to help debugging
+        // Robust checks: patient & doctor names should appear somewhere on list page
+        boolean ok =
+                (selectedPatientText != null && !selectedPatientText.isBlank() && bodyText.contains(selectedPatientText))
+                        || (selectedDoctorText != null && !selectedDoctorText.isBlank() && bodyText.contains(selectedDoctorText))
+                        || bodyText.contains("Selenium test note");
+
+        if (!ok) {
             takeScreenshot("appointment-create-missing");
-            throw new AssertionError("Created appointment not found in list page. Body snippet: " + bodyText.substring(0, Math.min(300, bodyText.length())));
+            throw new AssertionError(
+                    "Created appointment not found in list page.\n" +
+                            "SelectedPatient='" + selectedPatientText + "' SelectedDoctor='" + selectedDoctorText + "'\n" +
+                            "Body snippet: " + bodyText.substring(0, Math.min(500, bodyText.length()))
+            );
         }
+
+        // If one of them is present, test passes
+        assertThat(ok).isTrue();
     }
 
-    private void waitUntilSelectHasOptions(By selector) {
-        wait.until((ExpectedCondition<Boolean>) driver -> {
+    private void waitUntilSelectHasRealOptions(By selector) {
+        wait.until((ExpectedCondition<Boolean>) d -> {
             try {
-                WebElement e = driver.findElement(selector);
-                List<WebElement> opts = e.findElements(By.tagName("option"));
+                WebElement selectEl = d.findElement(selector);
+                List<WebElement> opts = selectEl.findElements(By.tagName("option"));
                 for (WebElement o : opts) {
                     String v = o.getAttribute("value");
-                    String t = o.getText();
-                    if ((v != null && !v.isBlank()) || (t != null && !t.isBlank())) return true;
+                    if (v != null && !v.isBlank()) return true; // ONLY real options
                 }
                 return false;
             } catch (NoSuchElementException ex) {
@@ -178,28 +162,61 @@ public class AppointmentSeleniumIT {
         });
     }
 
-    private boolean chooseFirstNonEmptyOption(Select select) {
+    private boolean chooseFirstRealOptionByValue(Select select) {
         for (WebElement opt : select.getOptions()) {
             String v = opt.getAttribute("value");
-            String t = opt.getText();
             if (v != null && !v.isBlank()) {
                 select.selectByValue(v);
-                return true;
-            }
-            if (t != null && !t.isBlank()) {
-                // fallback: select by visible text
-                select.selectByVisibleText(t);
                 return true;
             }
         }
         return false;
     }
 
+    private void setDateTimeLocal(String name, String value) {
+        WebElement input = driver.findElement(By.cssSelector("form input[type='datetime-local'][name='" + name + "']"));
+        if (driver instanceof JavascriptExecutor js) {
+            js.executeScript(
+                    "arguments[0].value = arguments[1];" +
+                            "arguments[0].dispatchEvent(new Event('input', {bubbles:true}));" +
+                            "arguments[0].dispatchEvent(new Event('change', {bubbles:true}));",
+                    input, value
+            );
+        } else {
+            input.clear();
+            input.sendKeys(value);
+        }
+    }
+
+    private WebElement findSubmitButton() {
+        List<WebElement> buttons = driver.findElements(By.cssSelector("form button[type='submit'], form button.btn-primary"));
+        for (WebElement b : buttons) {
+            String text = b.getText();
+            if (text != null && (text.contains("Create") || text.contains("Update") || text.contains("Save") || text.contains("Kaydet") || text.contains("Oluştur"))) {
+                return b;
+            }
+        }
+        return buttons.isEmpty() ? null : buttons.get(0);
+    }
+
+    private String safeText(WebElement el) {
+        try {
+            return el == null ? null : el.getText();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void takeScreenshot(String name) throws IOException {
         if (!(driver instanceof TakesScreenshot)) return;
+
         File scr = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-        File target = new File(System.getProperty("java.io.tmpdir"), name + ".png");
-        Files.copy(scr.toPath(), target.toPath());
+
+        // Unique filename + overwrite safety
+        String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"));
+        File target = new File(System.getProperty("java.io.tmpdir"), name + "_" + ts + ".png");
+
+        Files.copy(scr.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
         System.out.println("Saved screenshot to: " + target.getAbsolutePath());
     }
 }
