@@ -188,6 +188,33 @@
                     </includes>
                 </configuration>
             </plugin>
+
+            <!-- JaCoCo Code Coverage -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.10</version>
+                <executions>
+                    <!-- Prepare the agent so both Surefire and Failsafe run with the agent attached -->
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <!-- Generate HTML/XML reports during verify phase -->
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <outputDirectory>${project.build.directory}/jacoco-report</outputDirectory>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
