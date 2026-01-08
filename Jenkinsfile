@@ -80,10 +80,11 @@ pipeline {
         script {
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
             if (isUnix()) {
-              // Failsafe integration test (verify ile çalışır)
-              sh './mvnw -DskipUTs=true verify'
+              // Sadece `com.hospital.automation.integration` paketindeki integration testleri çalıştır
+              sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.integration.*IT" verify'
             } else {
-              bat 'mvnw.cmd -DskipUTs=true verify'
+              // Windows: aynı paket filtresiyle çalıştır
+              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.integration.*IT" verify'
             }
           }
         }
