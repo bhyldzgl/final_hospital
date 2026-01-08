@@ -14,8 +14,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,6 +33,7 @@ public class DepartmentSeleniumIT {
     @BeforeEach
     void setup() {
         WebDriverManager.chromedriver().setup();
+
         ChromeOptions options = new ChromeOptions();
         String headless = System.getenv("CHROME_HEADLESS");
         if (headless == null) headless = System.getProperty("chrome.headless", "true");
@@ -36,6 +41,7 @@ public class DepartmentSeleniumIT {
             options.addArguments("--headless=new");
             options.addArguments("--disable-gpu");
         }
+
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--window-size=1200,800");
@@ -53,25 +59,31 @@ public class DepartmentSeleniumIT {
 
     @Test
     void createDepartment_viaUi_showsInList() throws IOException {
+        String depName = "Selenium Department " + shortId();
+
         driver.get(baseUrl + "/ui/departments/new");
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("form")));
 
-        driver.findElement(By.cssSelector("form input[name='name']")).sendKeys("Selenium Department");
+        WebElement nameInput = driver.findElement(By.cssSelector("form input[name='name']"));
+        nameInput.clear();
+        nameInput.sendKeys(depName);
 
         WebElement submitBtn = findSubmitButton();
         assertThat(submitBtn).isNotNull();
+        wait.until(ExpectedConditions.elementToBeClickable(submitBtn));
         submitBtn.click();
 
         wait.until(ExpectedConditions.urlContains("/ui/departments"));
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
 
         String body = driver.findElement(By.tagName("body")).getText();
-        if (body.contains("Selenium Department")) {
-            assertThat(body).contains("Selenium Department");
-        } else {
+        if (!body.contains(depName)) {
             takeScreenshot("department-create-missing");
-            throw new AssertionError("Created department not found in list page. Body snippet: " + body.substring(0, Math.min(300, body.length())));
+            throw new AssertionError("Created department not found in list page.\nExpected='" + depName + "'\nBody snippet: "
+                    + body.substring(0, Math.min(400, body.length())));
         }
+
+        assertThat(body).contains(depName);
     }
 
     private WebElement findSubmitButton() {
@@ -85,12 +97,18 @@ public class DepartmentSeleniumIT {
         return buttons.isEmpty() ? null : buttons.get(0);
     }
 
+    private String shortId() {
+        return UUID.randomUUID().toString().substring(0, 8);
+    }
+
     private void takeScreenshot(String name) throws IOException {
         if (!(driver instanceof TakesScreenshot)) return;
+
         File scr = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-        File target = new File(System.getProperty("java.io.tmpdir"), name + ".png");
-        Files.copy(scr.toPath(), target.toPath());
+        String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"));
+        File target = new File(System.getProperty("java.io.tmpdir"), name + "_" + ts + ".png");
+
+        Files.copy(scr.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
         System.out.println("Saved screenshot to: " + target.getAbsolutePath());
     }
 }
-
