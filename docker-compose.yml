@@ -20,7 +20,7 @@ services:
     build: .
     container_name: hospital_app
     ports:
-      - "9059:9059"
+      - "9060:9060"
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/hospital
