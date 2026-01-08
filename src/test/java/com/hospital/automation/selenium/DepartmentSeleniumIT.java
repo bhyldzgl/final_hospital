@@ -73,23 +73,43 @@ public class DepartmentSeleniumIT {
         wait.until(ExpectedConditions.elementToBeClickable(submitBtn));
         submitBtn.click();
 
-        wait.until(ExpectedConditions.urlContains("/ui/departments"));
+        // ❗ ESAS FIX: "/ui/departments/new" değil, "/ui/departments" olduğuna emin ol
+        try {
+            wait.until(ExpectedConditions.urlMatches(".*/ui/departments/?$"));
+        } catch (TimeoutException e) {
+            takeScreenshot("department-not-redirected");
+            String url = driver.getCurrentUrl();
+            String body = driver.findElement(By.tagName("body")).getText();
+            throw new AssertionError(
+                    "Submit sonrası listeye redirect olmadı.\n" +
+                            "Beklenen: /ui/departments\n" +
+                            "Şu anki URL: " + url + "\n" +
+                            "Body snippet: " + body.substring(0, Math.min(500, body.length())),
+                    e
+            );
+        }
+
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
 
         String body = driver.findElement(By.tagName("body")).getText();
         if (!body.contains(depName)) {
             takeScreenshot("department-create-missing");
-            throw new AssertionError("Created department not found in list page.\nExpected='" + depName + "'\nBody snippet: "
-                    + body.substring(0, Math.min(400, body.length())));
+            throw new AssertionError(
+                    "Created department listede bulunamadı.\n" +
+                            "Expected='" + depName + "'\n" +
+                            "URL=" + driver.getCurrentUrl() + "\n" +
+                            "Body snippet: " + body.substring(0, Math.min(500, body.length()))
+            );
         }
 
         assertThat(body).contains(depName);
     }
 
     private WebElement findSubmitButton() {
-        List<WebElement> buttons = driver.findElements(By.cssSelector("form button[type='submit'], form button.btn-primary"));
+        List<WebElement> buttons = driver.findElements(By.cssSelector("form button, form input[type='submit']"));
         for (WebElement b : buttons) {
-            String text = b.getText();
+            String tag = b.getTagName();
+            String text = "input".equalsIgnoreCase(tag) ? b.getAttribute("value") : b.getText();
             if (text != null && (text.contains("Create") || text.contains("Save") || text.contains("Kaydet") || text.contains("Oluştur"))) {
                 return b;
             }
