@@ -105,7 +105,7 @@ pipeline {
 
               echo "Waiting for backend..."
               for i in {1..60}; do
-                if curl -sf --connect-timeout 5 http://localhost:8081/login; then
+                if curl -sf --connect-timeout 5 http://localhost:9060; then
                   echo "Backend is ready!"
                   exit 0
                 fi
