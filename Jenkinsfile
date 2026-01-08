@@ -145,15 +145,67 @@ pipeline {
       }
     }
 
+    // Yeni stage: Selenium standalone Chrome container başlat
+    stage('5.5- Start Selenium Container') {
+      steps {
+        script {
+          if (isUnix()) {
+            sh '''
+              docker rm -f selenium_chrome || true
+              docker run -d --rm -p 4444:4444 --shm-size=2g --name selenium_chrome selenium/standalone-chrome:latest
+
+              echo "Waiting for selenium..."
+              for i in {1..30}; do
+                if curl -sf --connect-timeout 5 http://localhost:4444/status; then
+                  echo "Selenium is ready!"
+                  exit 0
+                fi
+                echo "Selenium not ready yet... ($i/30)"
+                sleep 2
+              done
+
+              echo "Selenium did not become ready in time."
+              exit 1
+            '''
+          } else {
+            withEnv(["PATH=C:\\Program Files\\Docker\\Docker\\resources\\bin;${env.PATH}"]) {
+              bat '''
+                docker rm -f selenium_chrome || exit /b 0
+                docker run -d --rm -p 4444:4444 --shm-size=2g --name selenium_chrome selenium/standalone-chrome:latest
+              '''
+
+              powershell '''
+                Write-Host "Waiting for selenium..."
+                $ok = $false
+                for ($i=1; $i -le 30; $i++) {
+                  try {
+                    $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://localhost:4444/status
+                    if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { $ok = $true; break }
+                  } catch {}
+                  Start-Sleep -Seconds 2
+                }
+                if (-not $ok) { throw "Selenium did not become ready in time." }
+                Write-Host "Selenium is ready!"
+              '''
+            }
+          }
+        }
+      }
+    }
+
     // Yeni: Selenium testleri için ayrı stage'ler (her biri tek bir Selenium IT sınıfını çalıştırır)
     stage('6- Selenium - Appointment') {
       steps {
         script {
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
             if (isUnix()) {
-              sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.AppointmentSeleniumIT" verify'
+              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]){
+                sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.AppointmentSeleniumIT" verify'
+              }
             } else {
-              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.AppointmentSeleniumIT" verify'
+              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]) {
+                bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.AppointmentSeleniumIT" verify'
+              }
             }
           }
         }
@@ -170,9 +222,13 @@ pipeline {
         script {
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
             if (isUnix()) {
-              sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.PatientSeleniumIT" verify'
+              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]){
+                sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.PatientSeleniumIT" verify'
+              }
             } else {
-              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.PatientSeleniumIT" verify'
+              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]) {
+                bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.PatientSeleniumIT" verify'
+              }
             }
           }
         }
@@ -189,9 +245,13 @@ pipeline {
         script {
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
             if (isUnix()) {
-              sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DoctorSeleniumIT" verify'
+              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]){
+                sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DoctorSeleniumIT" verify'
+              }
             } else {
-              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DoctorSeleniumIT" verify'
+              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]) {
+                bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DoctorSeleniumIT" verify'
+              }
             }
           }
         }
@@ -208,9 +268,13 @@ pipeline {
         script {
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
             if (isUnix()) {
-              sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DepartmentSeleniumIT" verify'
+              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]){
+                sh './mvnw -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DepartmentSeleniumIT" verify'
+              }
             } else {
-              bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DepartmentSeleniumIT" verify'
+              withEnv(["SELENIUM_REMOTE_URL=http://localhost:4444"]) {
+                bat 'mvnw.cmd -DskipUTs=true -Dit.test="com.hospital.automation.selenium.DepartmentSeleniumIT" verify'
+              }
             }
           }
         }
@@ -248,9 +312,11 @@ pipeline {
       script {
         if (isUnix()) {
           sh 'docker compose down -v || true'
+          sh 'docker rm -f selenium_chrome || true'
         } else {
-          withEnv(["PATH=C:\\Program Files\\Docker\\Docker\\resources\\bin;${env.PATH}"]) {
+          withEnv(["PATH=C:\\ Program Files\\Docker\\Docker\\resources\\bin;${env.PATH}"]) {
             bat 'docker compose down -v || exit /b 0'
+            bat 'docker rm -f selenium_chrome || exit /b 0'
           }
         }
       }

@@ -7,6 +7,11 @@ import org.junit.jupiter.api.Test;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.RemoteWebDriverBuilder;
+import org.openqa.selenium.remote.RemoteWebElement;
+import org.openqa.selenium.remote.Response;
+import org.openqa.selenium.remote.SessionId;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -14,6 +19,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -30,8 +37,7 @@ public class PatientSeleniumIT {
     private final String baseUrl = "http://localhost:9060";
 
     @BeforeEach
-    void setup() {
-        WebDriverManager.chromedriver().setup();
+    void setup() throws MalformedURLException {
         ChromeOptions options = new ChromeOptions();
         String headless = System.getenv("CHROME_HEADLESS");
         if (headless == null) headless = System.getProperty("chrome.headless", "true");
@@ -43,7 +49,16 @@ public class PatientSeleniumIT {
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--window-size=1200,800");
 
-        driver = new ChromeDriver(options);
+        String remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
+        if (remoteUrl != null && !remoteUrl.isBlank()) {
+            // Use RemoteWebDriver (Selenium Grid / standalone container)
+            driver = new RemoteWebDriver(new URL(remoteUrl), options);
+        } else {
+            // Local ChromeDriver via WebDriverManager
+            WebDriverManager.chromedriver().setup();
+            driver = new ChromeDriver(options);
+        }
+
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
 
@@ -73,7 +88,12 @@ public class PatientSeleniumIT {
         if (!birth.isEmpty()) {
             String dateStr = LocalDate.now().minusYears(30).format(DateTimeFormatter.ISO_DATE);
             birth.get(0).clear();
-            birth.get(0).sendKeys(dateStr);
+            // Use JS to set value to avoid localization issues with sendKeys on date inputs
+            if (driver instanceof JavascriptExecutor) {
+                ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", birth.get(0), dateStr);
+            } else {
+                birth.get(0).sendKeys(dateStr);
+            }
         }
 
         // phone/address
@@ -119,4 +139,3 @@ public class PatientSeleniumIT {
         System.out.println("Saved screenshot to: " + target.getAbsolutePath());
     }
 }
-

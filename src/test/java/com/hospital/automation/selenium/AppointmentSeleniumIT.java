@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -50,7 +51,7 @@ public class AppointmentSeleniumIT {
         options.addArguments("--window-size=1200,800");
 
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
     }
 
     @AfterEach
@@ -70,6 +71,10 @@ public class AppointmentSeleniumIT {
 
         // Wait for form to be present
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("form")));
+
+        // Wait for selects to be populated (patients/doctors loaded by controller)
+        waitUntilSelectHasOptions(By.cssSelector("form select[name='patientId']"));
+        waitUntilSelectHasOptions(By.cssSelector("form select[name='doctorId']"));
 
         // Select first non-empty patient (use rendered name attribute)
         Select patientSelect = new Select(driver.findElement(By.cssSelector("form select[name='patientId']")));
@@ -97,11 +102,20 @@ public class AppointmentSeleniumIT {
 
         WebElement startInput = driver.findElement(By.cssSelector("form input[type='datetime-local'][name='startTime']"));
         startInput.clear();
-        startInput.sendKeys(startStr);
+        // Use JS to set value to avoid sendKeys issues on datetime-local
+        if (driver instanceof JavascriptExecutor) {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", startInput, startStr);
+        } else {
+            startInput.sendKeys(startStr);
+        }
 
         WebElement endInput = driver.findElement(By.cssSelector("form input[type='datetime-local'][name='endTime']"));
         endInput.clear();
-        endInput.sendKeys(endStr);
+        if (driver instanceof JavascriptExecutor) {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", endInput, endStr);
+        } else {
+            endInput.sendKeys(endStr);
+        }
 
         // Optional note
         List<WebElement> noteInputs = driver.findElements(By.cssSelector("form input[name='note']"));
@@ -122,6 +136,8 @@ public class AppointmentSeleniumIT {
         if (submitBtn == null && !buttons.isEmpty()) submitBtn = buttons.get(0);
         assertThat(submitBtn).isNotNull();
 
+        // Wait until clickable and click
+        wait.until(ExpectedConditions.elementToBeClickable(submitBtn));
         submitBtn.click();
 
         // After submit we should be redirected to /ui/appointments
@@ -143,6 +159,23 @@ public class AppointmentSeleniumIT {
             takeScreenshot("appointment-create-missing");
             throw new AssertionError("Created appointment not found in list page. Body snippet: " + bodyText.substring(0, Math.min(300, bodyText.length())));
         }
+    }
+
+    private void waitUntilSelectHasOptions(By selector) {
+        wait.until((ExpectedCondition<Boolean>) driver -> {
+            try {
+                WebElement e = driver.findElement(selector);
+                List<WebElement> opts = e.findElements(By.tagName("option"));
+                for (WebElement o : opts) {
+                    String v = o.getAttribute("value");
+                    String t = o.getText();
+                    if ((v != null && !v.isBlank()) || (t != null && !t.isBlank())) return true;
+                }
+                return false;
+            } catch (NoSuchElementException ex) {
+                return false;
+            }
+        });
     }
 
     private boolean chooseFirstNonEmptyOption(Select select) {
