@@ -205,3 +205,6 @@ public class AppointmentSeleniumIT {
         System.out.println("Saved screenshot to: " + target.getAbsolutePath());
     }
 }
+
+
+
